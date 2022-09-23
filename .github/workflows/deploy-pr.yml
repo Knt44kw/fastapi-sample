@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout
         with:
           repository: Knt44kw/kubernetes-basics
-          ref: master
+          ref: test
       - name: Update manifest file
         env:
           YAML_PATH: 09-cicd/sample-app-manifests/deployment.yaml
@@ -59,3 +59,13 @@ jobs:
         run: |
           yq e -i "(.spec.template.spec.containers[]|select(.name == \"${CONTAINER_NAME}\").image)|=\"${IMAGE_FULL_NAME}\"" ${YAML_PATH}
           cat ${YAML_PATH}
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.REPO_GITHUB_TOKEN }} # Github actions経由で別のリポジトリへpushするにはtokenが必要
+          title: "Update fastapi-sample"
+          base: test # update-manifest.steps.with.repositoryのブランチ名を指定
+          draft: true
+          body: |
+            # Changes
+            - Update `fastapi-sample` image
