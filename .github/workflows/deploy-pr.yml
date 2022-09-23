@@ -11,6 +11,8 @@ jobs:
 # https://docs.github.com/ja/packages/managing-github-packages-using-github-actions-workflows/publishing-and-installing-a-package-with-github-actions#publishing-a-package-using-an-action
  build-and-push-image:
     runs-on: ubuntu-latest
+    output: # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idoutputs
+      tags: ${{ steps.meta.outputs.tags }}
     permissions:
       contents: read
       packages: write
@@ -39,3 +41,21 @@ jobs:
          push: true
          tags: ${{ steps.meta.outputs.tags }}
          labels: ${{ steps.meta.outputs.labels }}
+  
+  update-manifest:
+    needs: build-and-push-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Knt44kw/kubernetes-basics
+        uses: actions/checkout
+        with:
+          repository: Knt44kw/kubernetes-basics
+          ref: master
+      - name: Update manifest file
+        env:
+          YAML_PATH: 09-cicd/sample-app-manifests/deployment.yaml
+          CONTAINER_NAME: fastapi-sample
+          IMAGE_FULL_NAME: ${{ needs.build-and-push-image.outpus.tags }} 
+        run: |
+          yq e -i "(.spec.template.spec.containers[]|select(.name == \"${CONTAINER_NAME}\").image)|=\"${IMAGE_FULL_NAME}\"" ${YAML_PATH}
+          cat ${YAML_PATH}
